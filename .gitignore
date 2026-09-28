@@ -1,0 +1,10 @@
+# Captures, scripts et profils temporaires des tests
+test/out/
+
+# Éditeurs et système
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+*.log
+node_modules/

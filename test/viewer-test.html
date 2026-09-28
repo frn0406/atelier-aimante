@@ -1,0 +1,340 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Banc de la vue 3D</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  /* Mêmes couleurs de scène que index.html : la vue lit --stage-top / --stage-bottom. */
+  :root { --stage-top: #F8FAFD; --stage-bottom: #DFE6EF; --page: #eef1f6; --ink: #1b2233; }
+  body.dark { --stage-top: #1A2331; --stage-bottom: #0D1219; --page: #0b0f15; --ink: #dfe6f5; }
+  html, body { margin: 0; padding: 0; background: var(--page); color: var(--ink); font: 13px/1.4 system-ui, sans-serif; }
+  #stage {
+    position: relative; width: 1200px; height: 800px; margin: 8px;
+    background: linear-gradient(180deg, var(--stage-top), var(--stage-bottom));
+    border-radius: 14px; overflow: hidden;
+  }
+  /* Repères du cadrage visé (80 % env.) : #guides */
+  #guides { position: absolute; inset: 0; pointer-events: none; display: none; z-index: 2; }
+  #guides div { position: absolute; border: 1px dashed rgba(200, 40, 90, 0.7); }
+  #status { margin: 0 8px; padding: 4px 8px; font-family: ui-monospace, monospace; font-size: 12px; }
+  #errors {
+    position: fixed; left: 0; right: 0; top: 0; z-index: 9; display: none;
+    background: #c62828; color: #fff; padding: 6px 10px; font: 12px/1.35 ui-monospace, monospace; white-space: pre-wrap;
+  }
+  #tip {
+    position: fixed; pointer-events: none; display: none; z-index: 5;
+    background: rgba(20, 26, 38, 0.88); color: #fff; padding: 4px 8px; border-radius: 6px; font-size: 12px;
+  }
+  #snap { position: absolute; right: 12px; bottom: 12px; width: 300px; border: 2px solid #fff; box-shadow: 0 2px 10px rgba(0,0,0,.25); display: none; }
+</style>
+</head>
+<body>
+<div id="errors"></div>
+<div id="stage"><img id="snap" alt=""><div id="guides"><div id="guide-box"></div></div></div>
+<div id="status">chargement…</div>
+<div id="tip"></div>
+<script>
+  // Bandeau d'erreurs (shot.cjs ne montre pas la console).
+  (function () {
+    const box = document.getElementById('errors');
+    const show = (msg) => {
+      box.style.display = 'block';
+      box.textContent += (box.textContent ? '\n' : '') + msg;
+    };
+    window.onerror = (m, src, line, col, err) => show('onerror : ' + m + ' @' + (src || '').split('/').pop() + ':' + line + (err && err.stack ? '\n' + err.stack.split('\n').slice(0, 4).join('\n') : ''));
+    window.addEventListener('unhandledrejection', (e) => show('promesse rejetée : ' + (e.reason && (e.reason.stack || e.reason.message) || e.reason)));
+    const ce = console.error.bind(console), cw = console.warn.bind(console);
+    console.error = (...a) => { show('console.error : ' + a.map(String).join(' ')); ce(...a); };
+    console.warn = (...a) => { show('console.warn : ' + a.map(String).join(' ')); cw(...a); };
+    window.__showError = show;
+  })();
+</script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.147.0/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/controls/OrbitControls.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/environments/RoomEnvironment.js"></script>
+<script src="../js/pieces.js"></script>
+<script src="../js/builder.js"></script>
+<script src="selftest-scene.js"></script>
+<script>
+  // Thèmes réels (facultatifs) : chargés seulement s'ils existent, sans bloquer la page.
+  for (const f of ['a-habitat', 'b-ville', 'c-aventure']) document.write('<script src="../themes/' + f + '.js" onerror="this.remove()"><\/script>');
+</script>
+<script src="../js/viewer.js"></script>
+<script>
+  (function () {
+    'use strict';
+    const statusEl = document.getElementById('status');
+    const tip = document.getElementById('tip');
+    const logs = [];
+    const log = (s) => { logs.push(s); statusEl.textContent = logs.join(' · '); };
+
+    // Paramètres du hash : #step=4&explode=0.6&highlight=WIN4&dark&az=120&el=30&ghost=0&colors=type|rainbow&hover=12&pick=12&shot&dispose&scene=perf
+    //   theme=chateau&size=3&packs=1&seed=5 (construction réelle) · w=390&h=640 (taille de la vue) · guides (cadre 84 % × 78 %)
+    //   dark : fond et vue en thème sombre (variables --stage-top / --stage-bottom comme index.html)
+    //   tune={"paneDensity":0.7,"light":{"opacity":0.3}} : essai de réglages (MT.viewerLook / MT.viewerThemes)
+    const H = {};
+    for (const kv of location.hash.replace(/^#/, '').split('&').filter(Boolean)) {
+      const [k, v] = kv.split('=');
+      H[decodeURIComponent(k)] = v === undefined ? true : decodeURIComponent(v);
+    }
+    if (H.dark) document.body.classList.add('dark');
+    if (H.w || H.h) {
+      const st = document.getElementById('stage');
+      if (H.w) st.style.width = Number(H.w) + 'px';
+      if (H.h) st.style.height = Number(H.h) + 'px';
+    }
+    if (H.guides) {
+      document.getElementById('guides').style.display = 'block';
+      const g = document.getElementById('guide-box').style;
+      g.left = '8%'; g.right = '8%'; g.top = '11%'; g.bottom = '11%';
+    }
+
+    /** Part de la vue occupée par la construction (sommets projetés, en % de largeur et de hauteur). */
+    function fillOf(viewer, result) {
+      let x0 = 1, x1 = -1, y0 = 1, y1 = -1;
+      const v = new THREE.Vector3();
+      viewer.camera.updateMatrixWorld();
+      for (const p of result.placements) {
+        const P = MT.PIECES[p.type];
+        const pts = p.type === 'CAR'
+          ? [[0, 0], [2, 0], [0, 1], [2, 1]].map(([x, y]) => { const w = MT.worldPoint(p, x, y); return [[w[0], p.pos[1], w[2]], [w[0], 0, w[2]]]; }).flat()
+          : P.outline.map(([x, y]) => MT.worldPoint(p, x, y));
+        for (const w of pts) {
+          v.set(w[0], w[1], w[2]).project(viewer.camera);
+          x0 = Math.min(x0, v.x); x1 = Math.max(x1, v.x); y0 = Math.min(y0, v.y); y1 = Math.max(y1, v.y);
+        }
+      }
+      return `cadrage : largeur ${((x1 - x0) * 50).toFixed(0)} % [${x0.toFixed(2)}, ${x1.toFixed(2)}], hauteur ${((y1 - y0) * 50).toFixed(0)} % [${y0.toFixed(2)}, ${y1.toFixed(2)}]`;
+    }
+
+    function perfScene() {
+      const b = new MT.Builder({ packs: 2, seed: 3 });
+      const opt = (fn) => b.tryBuild(fn);
+      b.step('Rez-de-chaussée');
+      opt(() => b.room(0, 0, 0, 5, 3, ({ side, i }) => (side === 'S' && i === 2 ? 'arch' : 'solid')));
+      b.step('Étage');
+      opt(() => b.room(0, 1, 0, 5, 3, 'window'));
+      opt(() => b.room(0, 2, 0, 5, 3, 'solid'));
+      b.step('Toit');
+      opt(() => b.gableRoof(0, 3, 0, 5, 3, 'x'));
+      b.step('Pyramide');
+      opt(() => b.bigPyramid(7, 0, 0, 2));
+      b.step('Remparts');
+      opt(() => b.room(0, 0, 5, 4, 4, 'solid'));
+      opt(() => b.crenelRim(0, 1, 5, 4, 4));
+      b.step('Tours');
+      for (let i = 0; i < 4; i++) {
+        opt(() => {
+          b.box(6 + i * 2, 0, 5, {});
+          b.box(6 + i * 2, 1, 5, {});
+          b.pyramidRoof(6 + i * 2, 2, 5, 'TT');
+        });
+      }
+      b.step('Tentes');
+      for (let i = 0; i < 4; i++) opt(() => b.aFrame(6 + i * 2, 0, 8, 1, 'z'));
+      b.step('Train');
+      for (let i = 0; i < 4; i++) opt(() => { b.car(i * 3, 11, 'x'); b.box(i * 3, MT.CAR.top, 11, {}); });
+      b.step('Pavage');
+      for (let x = 0; x < 12; x++) for (let z = 13; z < 16; z++) opt(() => b.floor(x, 0, z, 'floor'));
+      const r = b.finish();
+      r.title = 'Scène de charge';
+      r.validation = MT.validate(r.placements);
+      return r;
+    }
+
+    function colorsFor(result, mode) {
+      if (mode === 'type' || !mode) return result.placements.map((p) => MT.PIECES[p.type].color);
+      if (mode === 'rainbow') return result.placements.map((p, i) => MT.RAINBOW[(p.step + i) % MT.RAINBOW.length]);
+      if (mode === 'step') return result.placements.map((p) => MT.RAINBOW[p.step % MT.RAINBOW.length]);
+      return result.placements.map(() => mode.startsWith('#') ? mode : '#' + mode);
+    }
+
+    function projected(viewer, p) {
+      const c = MT.worldCentroid(p);
+      if (p.type === 'CAR') {
+        const w = MT.worldPoint(p, 1, 0.5);
+        c[0] = w[0]; c[1] = p.pos[1] - 0.02; c[2] = w[2];
+      }
+      const v = new THREE.Vector3(c[0], c[1], c[2]).project(viewer.camera);
+      const r = viewer.renderer.domElement.getBoundingClientRect();
+      return { x: r.left + (v.x + 1) / 2 * r.width, y: r.top + (1 - v.y) / 2 * r.height };
+    }
+
+    function run() {
+      const stage = document.getElementById('stage');
+      if (H.tune) {
+        // Réglages de rendu à essayer : tune={"paneDensity":0.7,"light":{"opacity":0.3},"dark":{...}}
+        const t = JSON.parse(H.tune);
+        for (const k of Object.keys(t)) {
+          if (k === 'light' || k === 'dark') Object.assign(MT.viewerThemes[k], t[k]);
+          else MT.viewerLook[k] = t[k];
+        }
+        log('réglages : ' + H.tune);
+      }
+      const t0 = performance.now();
+
+      if (H.errors) {
+        // Chemins d'erreur explicites attendus.
+        const saved = window.WebGLRenderingContext;
+        window.WebGLRenderingContext = undefined;
+        try { MT.createViewer({ container: stage, THREE }); log('ERREUR : pas d’exception sans WebGL'); } catch (e) { log('sans WebGL → ' + e.message); }
+        window.WebGLRenderingContext = saved;
+        try { MT.createViewer({ container: stage, THREE: {} }); log('ERREUR : pas d’exception sans THREE'); } catch (e) { log('sans THREE → ' + e.message); }
+        log('canvas après erreurs : ' + stage.querySelectorAll('canvas').length);
+      }
+      if (H.dispose) {
+        // Crée, peuple, détruit puis recrée : aucune erreur ni fuite de canvas attendue.
+        const tmp = MT.createViewer({ container: stage, THREE });
+        tmp.setBuild(MT.generate('selftest', { packs: 2 }));
+        tmp.dispose();
+        tmp.dispose();
+        log('dispose OK (canvas restants : ' + stage.querySelectorAll('canvas').length + ')');
+      }
+
+      let hovered = null;
+      const viewer = MT.createViewer({
+        container: stage,
+        THREE,
+        onHover(p, info) {
+          hovered = p;
+          if (p) {
+            tip.style.display = 'block';
+            tip.style.left = info.clientX + 14 + 'px';
+            tip.style.top = info.clientY + 12 + 'px';
+            tip.textContent = `#${p.id} ${MT.PIECES[p.type].name} — étape ${p.step + 1}`;
+          } else {
+            tip.style.display = 'none';
+          }
+        },
+        onPick(p) {
+          log('clic : #' + p.id + ' ' + p.type);
+        },
+      });
+      window.viewer = viewer;
+      const tc = performance.now();
+
+      const result = H.scene === 'perf' ? perfScene()
+        : H.theme ? MT.generate(H.theme, { size: Number(H.size) || 3, packs: Number(H.packs) === 2 ? 2 : 1, seed: Number(H.seed) || 1 })
+        : MT.generate('selftest', { packs: 2, seed: 1 });
+      window.result = result;
+      const tg = performance.now();
+      viewer.setBuild(result, { colors: colorsFor(result, H.colors) });
+      const tb = performance.now();
+      if (H.rebuild) {
+        // Deuxième setBuild (cache de géométries chaud) avec caméra conservée.
+        viewer.setBuild(result, { colors: colorsFor(result, H.colors), keepCamera: true });
+        log('2e setBuild ' + (performance.now() - tb).toFixed(0) + ' ms');
+      }
+      if (H.dark) viewer.setDark(true);
+      if (H.az != null || H.el != null || H.dist != null) {
+        viewer.setView({ azimuth: H.az != null ? Number(H.az) : undefined, elevation: H.el != null ? Number(H.el) : undefined, distance: H.dist != null ? Number(H.dist) : undefined });
+      }
+      if (H.target) {
+        // Recentre la caméra sur un point (x,y,z) en gardant l'angle ; zoom = facteur de distance.
+        const [x, y, z] = H.target.split(',').map(Number);
+        const c = viewer.controls, cam = viewer.camera;
+        const off = cam.position.clone().sub(c.target).multiplyScalar(Number(H.zoom) || 1);
+        c.target.set(x, y, z);
+        cam.position.copy(c.target).add(off);
+        c.update();
+      }
+      if (H.focus) {
+        // Gros plan sur la première pièce du type donné (ex. focus=CAR&zoom=0.3) : plateau, attelages, aimants.
+        const p = result.placements.find((q) => q.type === H.focus);
+        if (p) {
+          const w = p.type === 'CAR' ? MT.worldPoint(p, 1, 0.5) : MT.worldCentroid(p);
+          const c = viewer.controls, cam = viewer.camera;
+          const off = cam.position.clone().sub(c.target).multiplyScalar(Number(H.zoom) || 0.3);
+          c.target.set(w[0], p.type === 'CAR' ? p.pos[1] * 0.6 : w[1], w[2]);
+          cam.position.copy(c.target).add(off);
+          c.update();
+        }
+      }
+      if (H.ghost === '0') viewer.setGhost(false);
+      if (H.explode != null) viewer.setExplode(Number(H.explode));
+      if (H.highlight) viewer.highlightType(H.highlight);
+      if (H.step != null) viewer.setStep(Number(H.step));
+      if (H.recolor) viewer.setColors(colorsFor(result, H.recolor));
+      if (H.rotate) viewer.setAutoRotate(true);
+      const t1 = performance.now();
+      log(`${result.pieceCount} pièces, ${result.steps.length} étapes, validation ${result.validation.ok ? 'OK' : 'KO'} — createViewer ${(tc - t0).toFixed(0)} ms, génération ${(tg - tc).toFixed(0)} ms, setBuild ${(tb - tg).toFixed(0)} ms, total ${(t1 - t0).toFixed(0)} ms`);
+
+      setTimeout(() => {
+        const info = viewer.renderer.info;
+        log(`appels ${info.render.calls}, triangles ${info.render.triangles}, lignes ${info.render.lines}, programmes ${info.programs.length}`);
+        log(fillOf(viewer, result));
+        if (H.hover != null || H.pick != null) {
+          const id = Number(H.hover != null ? H.hover : H.pick);
+          const p = result.placements[id];
+          const pt = projected(viewer, p);
+          const canvas = viewer.renderer.domElement;
+          const ev = (type) => new PointerEvent(type, { clientX: pt.x, clientY: pt.y, bubbles: true, pointerId: 1, button: 0, isPrimary: true });
+          canvas.dispatchEvent(ev('pointermove'));
+          if (H.pick != null) {
+            canvas.dispatchEvent(ev('pointerdown'));
+            canvas.dispatchEvent(ev('pointerup'));
+          }
+          setTimeout(() => {
+            log('survol attendu #' + id + ' → obtenu ' + (hovered ? '#' + hovered.id : 'aucun'));
+            if (H.thenstep != null) {
+              // La pièce survolée devient fantôme : onHover(null) attendu.
+              viewer.setStep(Number(H.thenstep));
+              log('après setStep(' + H.thenstep + ') : ' + (hovered ? '#' + hovered.id : 'aucun'));
+            }
+          }, 120);
+        }
+        if (H.shot) {
+          viewer.screenshot().then((blob) => {
+            const img = document.getElementById('snap');
+            img.src = URL.createObjectURL(blob);
+            img.style.display = 'block';
+            log('capture PNG ' + blob.type + ' ' + Math.round(blob.size / 1024) + ' Ko');
+          });
+        }
+        if (H.animcheck) {
+          // Horloge et rAF pilotés à la main (le mode headless ne produit presque pas d'images).
+          const k = Number(H.animcheck) || 4;
+          const id = result.steps[k].ids[0];
+          let pc = null;
+          viewer.scene.traverse((o) => { if (o.userData.piece && o.userData.piece.p.id === id) pc = o.userData.piece; });
+          const realNow = performance.now.bind(performance), realRaf = window.requestAnimationFrame;
+          let clock = realNow();
+          const queue = [];
+          performance.now = () => clock;
+          window.requestAnimationFrame = (cb) => { queue.push(cb); return queue.length; };
+          const pump = () => { const q = queue.splice(0); q.forEach((cb) => cb(clock)); };
+          const dy = () => (pc.obj.position.y - pc.base.y - pc.off.y).toFixed(3) + '/op ' + pc.mat.opacity.toFixed(2);
+          viewer.setStep(k - 1);
+          pump();
+          viewer.setStep(k);
+          const out = [];
+          for (const dt of [0, 50, 100, 150, 200, 250, 300]) {
+            clock += dt ? 50 : 0;
+            pump();
+            out.push(dt + 'ms ' + dy());
+          }
+          performance.now = realNow;
+          window.requestAnimationFrame = realRaf;
+          viewer.requestRender();
+          log('anim #' + id + ' : ' + out.join(', '));
+        }
+        if (H.bench) {
+          // Rendu forcé de N images pour estimer le coût d'une image.
+          const n = 20;
+          const s = performance.now();
+          for (let i = 0; i < n; i++) viewer.renderer.render(viewer.scene, viewer.camera);
+          log(`rendu moyen ${((performance.now() - s) / n).toFixed(1)} ms/image (SwiftShader)`);
+        }
+      }, 400);
+    }
+
+    try {
+      run();
+    } catch (e) {
+      window.__showError('exception : ' + (e.stack || e.message));
+    }
+  })();
+</script>
+</body>
+</html>

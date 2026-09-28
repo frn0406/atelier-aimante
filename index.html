@@ -1,0 +1,755 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Atelier Aimanté</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible+Mono:wght@400;600&family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=Fredoka:wght@600&display=swap">
+<style>
+/* ------------------------------------------------------------------ jetons */
+:root {
+  --bg: #EDF1F6;
+  --surface: #FFFFFF;
+  --surface-2: #F5F7FA;
+  --ink: #172033;
+  --muted: #55617A;
+  --line: #D6DEE8;
+  --line-strong: #B9C4D3;
+  --accent: #F2641D;
+  --accent-soft: #FFE6D6;
+  --accent-text: #B8440C;
+  --on-accent: #1E1006;
+  --ok: #1F8A4C;
+  --warn: #A35A00;
+  --bad: #C4302B;
+  --info: #55617A;
+  --stage-top: #F8FAFD;
+  --stage-bottom: #DFE6EF;
+  --tool-bg: rgba(255, 255, 255, 0.94);
+  --tip-bg: #172033;
+  --tip-ink: #FFFFFF;
+  --shadow: 0 1px 2px rgba(23, 32, 51, 0.06), 0 6px 18px rgba(23, 32, 51, 0.08);
+  --font-ui: "Atkinson Hyperlegible", "Segoe UI", system-ui, -apple-system, Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-display: "Fredoka", "Trebuchet MS", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "Atkinson Hyperlegible Mono", ui-monospace, "Cascadia Mono", "SF Mono", Consolas, Menlo, monospace;
+  --radius: 8px;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0D1219;
+    --surface: #141B25;
+    --surface-2: #1A2330;
+    --ink: #E5EBF4;
+    --muted: #98A4B8;
+    --line: #273244;
+    --line-strong: #3A485E;
+    --accent: #FF8440;
+    --accent-soft: #3A2416;
+    --accent-text: #FF9A5E;
+    --on-accent: #1E1006;
+    --ok: #45C07E;
+    --warn: #E6A445;
+    --bad: #F06A62;
+    --info: #98A4B8;
+    --stage-top: #1A2331;
+    --stage-bottom: #0D1219;
+    --tool-bg: rgba(20, 27, 37, 0.94);
+    --tip-bg: #E5EBF4;
+    --tip-ink: #0D1219;
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 6px 18px rgba(0, 0, 0, 0.35);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0D1219;
+  --surface: #141B25;
+  --surface-2: #1A2330;
+  --ink: #E5EBF4;
+  --muted: #98A4B8;
+  --line: #273244;
+  --line-strong: #3A485E;
+  --accent: #FF8440;
+  --accent-soft: #3A2416;
+  --accent-text: #FF9A5E;
+  --on-accent: #1E1006;
+  --ok: #45C07E;
+  --warn: #E6A445;
+  --bad: #F06A62;
+  --info: #98A4B8;
+  --stage-top: #1A2331;
+  --stage-bottom: #0D1219;
+  --tool-bg: rgba(20, 27, 37, 0.94);
+  --tip-bg: #E5EBF4;
+  --tip-ink: #0D1219;
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 6px 18px rgba(0, 0, 0, 0.35);
+  color-scheme: dark;
+}
+
+/* ------------------------------------------------------------------- base */
+*, *::before, *::after { box-sizing: border-box; }
+html, body { height: 100%; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font: 400 15px/1.5 var(--font-ui);
+  -webkit-font-smoothing: antialiased;
+}
+h1, h2, h3, p { margin: 0; }
+h1, h2, h3 { text-wrap: balance; }
+button, input, select { font: inherit; color: inherit; }
+[hidden] { display: none !important; }
+.mono { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+input[type="range"] {
+  -webkit-appearance: none; appearance: none; height: 24px; margin: 0;
+  background: transparent; cursor: pointer;
+}
+input[type="range"]::-webkit-slider-runnable-track { height: 4px; border-radius: 2px; background: var(--line-strong); }
+input[type="range"]::-moz-range-track { height: 4px; border-radius: 2px; background: var(--line-strong); }
+input[type="range"]::-moz-range-progress { height: 4px; border-radius: 2px; background: var(--accent); }
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none; width: 18px; height: 18px; margin-top: -7px; border-radius: 50%;
+  background: var(--accent); border: 2px solid var(--surface); box-shadow: 0 0 0 1px var(--accent);
+}
+input[type="range"]::-moz-range-thumb {
+  width: 16px; height: 16px; border-radius: 50%;
+  background: var(--accent); border: 2px solid var(--surface); box-shadow: 0 0 0 1px var(--accent);
+}
+input[type="range"]:disabled { opacity: 0.45; cursor: default; }
+.sr-only {
+  position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0;
+  overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+}
+:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+
+/* ---------------------------------------------------------------- boutons */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  min-height: 36px; padding: 6px 14px;
+  border: 1px solid var(--line-strong); border-radius: var(--radius);
+  background: var(--surface); color: var(--ink);
+  font-weight: 700; font-size: 14px; line-height: 1.2;
+  cursor: pointer; white-space: nowrap;
+}
+.btn:hover { border-color: var(--muted); }
+.btn:disabled { opacity: 0.5; cursor: default; }
+.btn-primary { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+.btn-primary:hover { border-color: var(--on-accent); }
+.btn-small { min-height: 32px; padding: 4px 10px; font-size: 13px; }
+.btn-big { min-height: 48px; padding: 10px 16px; font-size: 15.5px; }
+.btn svg { width: 16px; height: 16px; flex: none; }
+.btn[aria-pressed="true"] { background: var(--accent-soft); border-color: var(--accent); }
+.link-btn {
+  display: inline; padding: 0; margin: 0; border: 0; background: none; cursor: pointer;
+  color: var(--accent-text); font-weight: 700; text-decoration: underline; text-underline-offset: 2px;
+}
+
+/* ------------------------------------------------------------------ cadre */
+.app { min-height: 100%; display: flex; flex-direction: column; }
+.top {
+  display: flex; align-items: center; gap: 12px;
+  padding: 10px 20px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--line);
+}
+.logo { display: flex; width: 34px; height: 34px; flex: none; }
+.logo svg { width: 100%; height: 100%; }
+.top h1 { font: 600 22px/1.1 var(--font-display); letter-spacing: 0.01em; }
+.top p { color: var(--muted); font-size: 14px; }
+
+.main {
+  flex: 1 1 auto;
+  display: grid;
+  grid-template-columns: clamp(296px, 24vw, 340px) minmax(0, 1fr) clamp(340px, 28vw, 400px);
+  grid-template-areas: "settings view result";
+  min-height: 0;
+}
+.col { min-width: 0; background: var(--surface); }
+.col-settings { grid-area: settings; border-right: 1px solid var(--line); }
+.col-result { grid-area: result; border-left: 1px solid var(--line); }
+.col-view { grid-area: view; min-width: 0; min-height: 0; padding: 14px; display: flex; }
+
+@media (min-width: 1100px) {
+  .app { height: 100%; }
+  .main { overflow: hidden; }
+  .col { overflow-y: auto; overscroll-behavior: contain; }
+}
+@media (max-width: 1099px) {
+  .main {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    grid-template-areas: "view view" "settings result";
+  }
+  .col-view { height: clamp(360px, 56vh, 640px); padding: 16px; }
+  .col-settings { border-top: 1px solid var(--line); }
+  .col-result { border-top: 1px solid var(--line); }
+}
+/* Téléphone : vue 3D, puis titre de la construction, puis réglages, puis le détail. */
+@media (max-width: 699px) {
+  .main { display: flex; flex-direction: column; }
+  .col-view { order: 1; height: clamp(300px, 52vh, 460px); padding: 12px 16px; }
+  .col-result { display: contents; }
+  .col-result > .sec { order: 4; background: var(--surface); }
+  .col-result > .res-head { order: 2; border-top: 1px solid var(--line); }
+  .col-settings { order: 3; border-right: 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+  .top { padding: 10px 16px; }
+  .top p { font-size: 13px; }
+}
+
+/* --------------------------------------------------------------- sections */
+.sec { padding: 16px 20px; border-bottom: 1px solid var(--line); display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; }
+.sec > * { min-width: 0; }
+.col > .sec:last-child { border-bottom: 0; }
+@media (max-width: 1299px) { .col-settings .sec { padding-inline: 16px; } }
+@media (max-width: 699px) { .sec { padding: 16px; } }
+.sec-title {
+  font-size: 12px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
+  color: var(--muted);
+}
+.sec-title label { cursor: pointer; }
+.hint { color: var(--muted); font-size: 13px; line-height: 1.45; }
+.status { font-size: 13.5px; }
+.status:empty { display: none; }
+.status.is-warn { color: var(--warn); }
+.status.is-bad { color: var(--bad); }
+.status .link-btn { margin-left: 4px; }
+
+/* ------------------------------------------------------------- thème libre */
+.free-form { display: flex; gap: 8px; }
+.free-form input, .code-form input {
+  flex: 1 1 0; width: 0; min-width: 0; min-height: 40px; padding: 6px 10px;
+  border: 1px solid var(--line-strong); border-radius: var(--radius);
+  background: var(--surface); color: var(--ink);
+}
+.free-form input::placeholder, .code-form input::placeholder { color: var(--muted); opacity: 0.85; }
+.ai-chip {
+  display: inline-block; padding: 0 6px; margin-left: 6px; border-radius: 4px;
+  background: var(--accent-soft); color: var(--accent-text);
+  font-size: 11px; letter-spacing: 0.04em; vertical-align: 1px; text-transform: none;
+}
+.ai-busy {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  padding: 8px 10px; border-radius: var(--radius);
+  background: var(--accent-soft); color: var(--ink); font-size: 13.5px; line-height: 1.35;
+}
+.ai-busy-text { display: grid; gap: 1px; min-width: 0; }
+.ai-busy small { color: var(--muted); font-size: 12px; }
+.ai-busy .pulse::before {
+  content: ""; display: inline-block; width: 8px; height: 8px; margin-right: 8px; border-radius: 50%;
+  background: var(--accent); vertical-align: 1px;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .ai-busy .pulse::before { animation: pulse 1.2s ease-in-out infinite; }
+  @keyframes pulse { 50% { opacity: 0.25; transform: scale(0.7); } }
+}
+
+/* -------------------------------------------------------- contrôle segmenté */
+.seg { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); border: 1px solid var(--line-strong); border-radius: var(--radius); overflow: hidden; background: var(--surface); }
+.seg input { position: absolute; opacity: 0; width: 1px; height: 1px; pointer-events: none; }
+.seg label {
+  display: grid; justify-items: center; gap: 1px; padding: 6px 2px; min-width: 0;
+  cursor: pointer; text-align: center; font-size: 13.5px; font-weight: 700; line-height: 1.2;
+  border-left: 1px solid var(--line);
+}
+.seg label:first-of-type { border-left: 0; }
+.seg label small { font-family: var(--font-mono); font-weight: 400; font-size: 11px; white-space: nowrap; color: var(--muted); font-variant-numeric: tabular-nums; }
+.seg input:checked + label { background: var(--accent-soft); color: var(--ink); box-shadow: inset 0 -3px 0 var(--accent); }
+.seg input:focus-visible + label { outline: 3px solid var(--accent); outline-offset: -3px; }
+.seg label:hover { background: var(--surface-2); }
+.seg input:checked + label:hover { background: var(--accent-soft); }
+.swatch { display: block; width: 44px; height: 8px; border-radius: 2px; margin-bottom: 3px; }
+
+/* --------------------------------------------------------------- interrupteur */
+.switch-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.switch-row label { font-weight: 700; cursor: pointer; }
+.switch-row label .mono { font-weight: 400; color: var(--muted); font-size: 13px; margin-left: 6px; }
+.switch {
+  appearance: none; -webkit-appearance: none; margin: 0; flex: none;
+  width: 44px; height: 26px; border-radius: 13px; position: relative; cursor: pointer;
+  background: var(--line-strong); transition: background 0.15s;
+}
+.switch::after {
+  content: ""; position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; border-radius: 50%;
+  background: var(--surface); box-shadow: 0 1px 2px rgba(0,0,0,0.25); transition: transform 0.15s;
+}
+.switch:checked { background: var(--accent); }
+.switch:checked::after { transform: translateX(18px); }
+
+/* ----------------------------------------------------------------- thèmes */
+.theme-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; min-width: 0; }
+.theme-card {
+  display: grid; grid-template-rows: auto auto 1fr; align-content: start; gap: 1px;
+  padding: 5px 5px 7px; text-align: left;
+  border: 1px solid var(--line); border-radius: var(--radius);
+  background: var(--surface-2); cursor: pointer; min-width: 0;
+}
+.theme-card:hover { border-color: var(--line-strong); }
+.theme-card[aria-pressed="true"] {
+  border-color: var(--accent); background: var(--accent-soft);
+  box-shadow: inset 0 0 0 1px var(--accent);
+}
+.theme-card canvas, .theme-card .thumb {
+  display: block; width: 100%; height: 64px; border-radius: 5px;
+  background: linear-gradient(180deg, var(--stage-top), var(--stage-bottom));
+}
+.theme-card .name { font-weight: 700; font-size: 13.5px; line-height: 1.25; margin-top: 4px; padding-inline: 3px; text-wrap: balance; }
+.theme-card .tag {
+  align-self: start; color: var(--muted); font-size: 12.5px; line-height: 1.3; padding-inline: 3px;
+  display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
+}
+.theme-card.surprise { grid-column: 1 / -1; grid-template-columns: 96px minmax(0, 1fr); grid-template-rows: auto auto; column-gap: 10px; align-items: center; }
+.theme-card.surprise .thumb { grid-row: 1 / span 2; height: 48px; display: flex; align-items: center; justify-content: center; }
+.theme-card.surprise .thumb svg { width: 26px; height: 26px; margin-inline: -3px; }
+.theme-card.surprise .name { margin-top: 0; align-self: end; }
+/* Téléphone : bande horizontale de cartes, à faire défiler du pouce. */
+@media (max-width: 699px) {
+  .theme-grid {
+    grid-template-columns: none; grid-auto-flow: column; grid-auto-columns: 146px;
+    overflow-x: auto; overscroll-behavior-x: contain; scroll-snap-type: x mandatory;
+    margin-inline: -16px; padding: 2px 16px 8px; scroll-padding-inline: 16px;
+  }
+  .theme-card { scroll-snap-align: start; }
+  .theme-card.surprise { grid-column: auto; grid-template-columns: none; grid-template-rows: auto auto 1fr; align-items: start; }
+  .theme-card.surprise .thumb { grid-row: auto; height: 64px; }
+  .theme-card.surprise .name { margin-top: 4px; }
+}
+
+/* ---------------------------------------------------------------- vue 3D */
+.stage {
+  position: relative; flex: 1 1 auto; min-width: 0; min-height: 0;
+  border: 1px solid var(--line); border-radius: 10px; overflow: hidden;
+  background: linear-gradient(180deg, var(--stage-top), var(--stage-bottom));
+}
+.viewer-host { position: absolute; inset: 0; }
+.viewer-host canvas { display: block; width: 100%; height: 100%; touch-action: none; }
+/* Page qui défile (tablette, téléphone) : un glissement vertical sur la vue fait
+   défiler la page ; un glissement horizontal fait tourner la construction. */
+@media (max-width: 1099px) {
+  .viewer-host canvas { touch-action: pan-y !important; }
+}
+.stage-note {
+  position: absolute; left: 10px; right: 10px; top: 58px; z-index: 3;
+  max-width: 520px; padding: 10px 12px; border-radius: var(--radius);
+  background: var(--tool-bg); border: 1px solid var(--line); color: var(--ink); font-size: 13.5px;
+}
+.stage-note.is-soft { top: auto; right: auto; bottom: 60px; padding: 4px 10px; font-size: 12.5px; color: var(--muted); }
+.toolbar {
+  position: absolute; top: 10px; right: 10px; z-index: 4;
+  display: flex; align-items: center; gap: 2px; padding: 3px;
+  background: var(--tool-bg); border: 1px solid var(--line); border-radius: var(--radius);
+  box-shadow: var(--shadow); max-width: calc(100% - 20px);
+}
+.tool {
+  display: inline-flex; align-items: center; justify-content: center; flex: none;
+  width: 36px; height: 36px; border: 0; border-radius: 6px; background: transparent; color: var(--ink); cursor: pointer;
+}
+.tool svg { width: 18px; height: 18px; }
+.tool:hover { background: var(--surface-2); }
+.tool:disabled { opacity: 0.4; cursor: default; }
+.tool[aria-pressed="true"] { background: var(--surface-2); box-shadow: inset 0 0 0 1.5px var(--line-strong); }
+.tool-range { display: inline-flex; align-items: center; gap: 6px; padding-inline: 6px 4px; color: var(--ink); min-width: 0; }
+.tool-range svg { width: 18px; height: 18px; flex: none; }
+.tool-range .tr-label { font-size: 12.5px; font-weight: 700; }
+.tool-range input { width: 80px; min-width: 0; accent-color: var(--accent); }
+.tool-sep { width: 1px; height: 22px; background: var(--line); margin-inline: 2px; flex: none; }
+
+.stepbar {
+  position: absolute; left: 10px; bottom: 10px; z-index: 4;
+  display: flex; align-items: center; gap: 2px; padding: 3px;
+  background: var(--tool-bg); border: 1px solid var(--line); border-radius: var(--radius);
+  box-shadow: var(--shadow); max-width: calc(100% - 20px);
+}
+.stepbar .sb-label { padding-inline: 6px; font-size: 13.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.stepbar .sb-label b { font-family: var(--font-mono); font-weight: 600; font-variant-numeric: tabular-nums; }
+/* Encadré « à ajouter » dans la vue : ce que l'enfant doit prendre maintenant. */
+.stage-step {
+  position: absolute; left: 10px; bottom: 60px; z-index: 4;
+  display: flex; align-items: center; flex-wrap: wrap; gap: 4px 12px;
+  max-width: calc(100% - 20px); padding: 6px 12px 6px 10px;
+  background: var(--tool-bg); border: 2px solid var(--accent); border-radius: 10px; box-shadow: var(--shadow);
+}
+.stage-step .ss-title { font-size: 11.5px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent-text); }
+.stage-step .ss-parts { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; }
+.ss-part { display: inline-flex; align-items: center; gap: 3px; }
+.ss-part svg { width: 30px; height: 30px; }
+.ss-part b { font-family: var(--font-mono); font-weight: 600; font-size: 15px; font-variant-numeric: tabular-nums; }
+.tip {
+  position: absolute; z-index: 5; pointer-events: none;
+  max-width: 260px; padding: 6px 9px; border-radius: 6px;
+  background: var(--tip-bg); color: var(--tip-ink); font-size: 13px; line-height: 1.35;
+  box-shadow: var(--shadow);
+}
+.tip b { display: block; }
+.tip span { opacity: 0.8; }
+@media (pointer: coarse) {
+  .tool { width: 44px; height: 44px; }
+}
+@media (max-width: 699px) {
+  .tool-range input { width: 64px; }
+  .toolbar { top: 8px; right: 8px; max-width: calc(100% - 16px); }
+  .stepbar { left: 8px; bottom: 8px; max-width: calc(100% - 16px); }
+  .stage-step { left: 8px; bottom: 58px; max-width: calc(100% - 16px); }
+  .ss-part svg { width: 26px; height: 26px; }
+}
+@media (max-width: 420px) {
+  .tool-range .tr-label { display: none; }
+}
+
+/* -------------------------------------------------------------- résultat */
+.res-eyebrow { font-size: 12.5px; color: var(--muted); font-weight: 700; letter-spacing: 0.04em; }
+.res-title { font-size: 22px; line-height: 1.2; font-weight: 700; }
+.res-summary { color: var(--ink); font-size: 14.5px; }
+.res-stats { display: flex; align-items: center; gap: 8px 10px; flex-wrap: wrap; }
+.count { font-size: 15px; }
+.count b { font-family: var(--font-mono); font-weight: 600; font-size: 20px; font-variant-numeric: tabular-nums; }
+.badge {
+  display: inline-flex; align-items: center; gap: 6px; padding: 3px 9px; border-radius: 999px;
+  font-size: 12.5px; font-weight: 700; line-height: 1.3; border: 1px solid currentColor; background: transparent;
+}
+.badge::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+.badge.is-one, .badge.is-ok { color: var(--ok); }
+.badge.is-two { color: var(--accent-text); }
+.badge.is-warn { color: var(--warn); }
+button.badge { cursor: pointer; font-family: inherit; }
+button.badge:hover { background: var(--surface-2); }
+.variant-row { display: flex; align-items: center; gap: 6px 10px; flex-wrap: wrap; }
+.variant-row .lbl { color: var(--muted); font-size: 13.5px; }
+.variant-row output { font-size: 16px; font-weight: 600; margin-left: -4px; min-width: 2ch; }
+.notice {
+  display: grid; gap: 8px; padding: 10px 12px; border-radius: var(--radius);
+  border: 1px solid var(--line); background: var(--surface-2); font-size: 13.5px;
+}
+.notice .btn { justify-self: start; }
+.report { display: grid; gap: 4px; font-size: 13.5px; color: var(--ink); }
+.report p { padding-left: 14px; position: relative; }
+.report p::before { content: ""; position: absolute; left: 2px; top: 0.6em; width: 6px; height: 6px; border-radius: 50%; background: var(--muted); }
+.report p.is-lead { padding-left: 0; color: var(--muted); }
+.report p.is-lead::before { display: none; }
+.head-start { justify-self: stretch; }
+@media (min-width: 700px) { .head-start { display: none !important; } }
+
+.code-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.code {
+  padding: 4px 8px; border-radius: 5px; background: var(--surface-2); border: 1px solid var(--line);
+  font-size: 14px; user-select: all; overflow-wrap: anywhere;
+}
+.code-form { display: flex; gap: 8px; }
+.code-form input { min-height: 34px; font-family: var(--font-mono); font-size: 13.5px; }
+.dl-row { display: flex; gap: 8px; flex-wrap: wrap; }
+.mini-status { font-size: 13px; color: var(--muted); }
+.mini-status:empty { display: none; }
+.mini-status.is-warn { color: var(--warn); }
+
+/* solidité (repliée) */
+.solid summary {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap; cursor: pointer; list-style: none;
+}
+.solid summary::-webkit-details-marker { display: none; }
+.solid summary::before {
+  content: ""; width: 7px; height: 7px; flex: none; margin-inline: 2px 0;
+  border-right: 2px solid var(--muted); border-bottom: 2px solid var(--muted); transform: rotate(-45deg); transition: transform 0.15s;
+}
+.solid[open] summary::before { transform: rotate(45deg); }
+.solid-sum { font-size: 14px; }
+.solid-sum.is-ok { color: var(--ok); }
+.solid-sum.is-warn { color: var(--warn); }
+.checks { list-style: none; margin: 10px 0 0; padding: 0; display: grid; gap: 7px; }
+.checks li { display: grid; grid-template-columns: 18px minmax(0, 1fr); gap: 8px; align-items: start; font-size: 14px; line-height: 1.4; }
+.checks svg { width: 18px; height: 18px; margin-top: 1px; }
+.checks .is-ok { color: var(--ok); }
+.checks .is-warn { color: var(--warn); }
+.checks .is-bad { color: var(--bad); }
+.checks .is-info { color: var(--info); }
+.checks small { display: block; color: var(--muted); font-size: 12.5px; }
+
+/* liste des pièces */
+.parts-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.parts { list-style: none; margin: 0; padding: 0; display: grid; }
+.part {
+  display: grid; grid-template-columns: 34px minmax(0, 1fr) auto; column-gap: 10px; row-gap: 3px;
+  align-items: center; padding: 7px 6px; border-radius: 6px;
+}
+.part + .part { border-top: 1px solid var(--line); }
+.part:hover { background: var(--surface-2); }
+.part.is-zero { opacity: 0.55; }
+.part .ico { grid-column: 1; grid-row: 1 / span 3; width: 34px; height: 34px; display: flex; align-items: center; justify-content: center; }
+.part .ico svg { width: 32px; height: 32px; }
+.part .nm { grid-column: 2; grid-row: 1; font-weight: 700; font-size: 14px; line-height: 1.25; min-width: 0; }
+.part .qty { grid-column: 3; grid-row: 1; font-family: var(--font-mono); font-variant-numeric: tabular-nums; font-size: 14px; text-align: right; white-space: nowrap; }
+.part .qty b { font-weight: 600; }
+.part .qty span { color: var(--muted); }
+.part .meta { display: contents; }
+.part .dims { grid-column: 2; grid-row: 2; font-size: 12.5px; line-height: 1.3; color: var(--muted); min-width: 0; }
+.part .rest { grid-column: 3; grid-row: 2; font-family: var(--font-mono); font-variant-numeric: tabular-nums; font-size: 12px; color: var(--muted); text-align: right; white-space: nowrap; }
+.part .bar { grid-column: 2 / 4; grid-row: 3; margin-top: 3px; }
+.bar { position: relative; height: 5px; border-radius: 3px; background: var(--line); overflow: hidden; }
+.bar i { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 3px; background: var(--accent); }
+.bar u { position: absolute; top: -1px; bottom: -1px; left: 50%; width: 2px; background: var(--surface); }
+.parts-total { display: flex; justify-content: space-between; gap: 8px; font-size: 13.5px; padding: 8px 6px 0; border-top: 1px solid var(--line-strong); }
+.parts-total b { font-family: var(--font-mono); font-weight: 600; font-variant-numeric: tabular-nums; }
+
+/* étapes */
+.step-card { display: grid; gap: 10px; }
+.step-head { display: flex; align-items: baseline; gap: 10px; }
+.step-word:empty { display: none; }
+.step-word { font-size: 12px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+.step-num { font: 600 44px/1 var(--font-display); color: var(--accent); font-variant-numeric: tabular-nums; }
+.step-num:focus { outline: none; }
+.step-of { font: 600 20px/1 var(--font-display); color: var(--muted); }
+.step-label { font-weight: 700; font-size: 15px; line-height: 1.35; }
+.step-box {
+  display: grid; gap: 8px; padding: 10px 12px 12px;
+  border: 1.5px solid var(--line-strong); border-radius: 10px; background: var(--surface-2);
+}
+.step-box h3 { font-size: 12px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+.step-box.is-step { border: 2.5px solid var(--accent); background: var(--accent-soft); padding: 12px 14px 14px; }
+.step-box.is-step h3 { color: var(--accent-text); font-size: 13px; }
+.step-parts { display: flex; flex-wrap: wrap; gap: 10px 16px; }
+.sp { display: flex; align-items: center; gap: 6px; }
+.sp svg { width: 44px; height: 44px; flex: none; }
+.sp .sp-txt { display: grid; line-height: 1.15; }
+.sp b { font-family: var(--font-mono); font-weight: 600; font-size: 19px; font-variant-numeric: tabular-nums; }
+.sp span { font-size: 12.5px; color: var(--muted); max-width: 9.5em; }
+.step-box.is-step .sp span { color: var(--ink); }
+.step-toc { list-style: none; margin: 0; padding: 0; display: grid; gap: 1px; width: 100%; max-height: 300px; overflow-y: auto; }
+.step-toc button {
+  display: grid; grid-template-columns: 2.4ch minmax(0, 1fr) auto; gap: 8px; align-items: baseline;
+  width: 100%; padding: 5px 6px; border: 0; border-radius: 5px; background: transparent;
+  text-align: left; font-size: 13.5px; line-height: 1.35; cursor: pointer;
+}
+.step-toc button:hover { background: var(--surface); }
+.step-toc .mono { color: var(--accent-text); font-weight: 600; text-align: right; }
+.step-toc em { font-style: normal; color: var(--muted); font-size: 12px; }
+.step-nav { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 8px; }
+.step-nav .btn-big { width: 100%; white-space: normal; text-align: center; }
+.step-nav .step-back { min-width: 56px; font-size: 22px; line-height: 1; }
+.step-ctrl { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px; align-items: center; }
+.step-ctrl input[type="range"] { width: 100%; accent-color: var(--accent); }
+.step-ctrl .end { font-size: 12.5px; color: var(--muted); }
+.step-actions { display: flex; gap: 8px 10px; flex-wrap: wrap; align-items: center; }
+.check { display: flex; flex: 1 1 100%; align-items: center; gap: 8px; font-size: 13.5px; cursor: pointer; }
+.check input { width: 18px; height: 18px; margin: 0; accent-color: var(--accent); }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition: none !important; animation: none !important; scroll-behavior: auto !important; }
+}
+</style>
+</head>
+<body>
+<div class="app" id="app">
+  <header class="top">
+    <span class="logo" aria-hidden="true">
+      <svg viewBox="0 0 34 34">
+        <rect x="3" y="3" width="28" height="28" rx="3" fill="#F2641D" fill-opacity="0.85"/>
+        <path d="M3 3L31 31M31 3L3 31M17 3L31 17L17 31L3 17Z" stroke="#fff" stroke-opacity="0.45" stroke-width="1.2" fill="none"/>
+        <g stroke="#262a31" stroke-width="2.2" stroke-linecap="round" stroke-opacity="0.8">
+          <path d="M8 6.5h5M21 6.5h5M8 27.5h5M21 27.5h5M6.5 8v5M6.5 21v5M27.5 8v5M27.5 21v5"/>
+        </g>
+      </svg>
+    </span>
+    <div>
+      <h1>Atelier Aimanté</h1>
+      <p>Idées de constructions pour ton pack de 136 tuiles magnétiques.</p>
+    </div>
+  </header>
+
+  <main class="main">
+    <!-- Réglages -->
+    <aside class="col col-settings" aria-label="Réglages">
+      <section class="sec" aria-labelledby="h-free">
+        <h2 class="sec-title" id="h-free"><label for="free-text">Ton thème</label><span class="ai-chip" id="ai-chip" hidden>avec Claude</span></h2>
+        <form id="free-form" class="free-form" autocomplete="off">
+          <input id="free-text" name="free-text" type="text" maxlength="80" placeholder="dragon, cirque, Mars…" aria-describedby="free-hint">
+          <button id="free-go" type="submit" class="btn btn-primary">Construire</button>
+        </form>
+        <p class="hint" id="free-hint">Écris une idée : je choisis le thème le plus proche. Tu peux aussi coller un code de construction.</p>
+        <div class="ai-busy" id="ai-busy" hidden>
+          <span class="ai-busy-text"><span class="pulse" id="ai-busy-text">Claude réfléchit à ta construction…</span><small id="ai-busy-time"></small></span>
+          <button id="ai-stop" type="button" class="btn btn-small">Arrêter</button>
+        </div>
+        <div class="status" id="free-status" role="status" aria-live="polite"></div>
+      </section>
+
+      <section class="sec" aria-labelledby="h-size">
+        <h2 class="sec-title" id="h-size">Taille</h2>
+        <div class="seg" role="radiogroup" aria-labelledby="h-size">
+          <input type="radio" name="size" id="size-1" value="1"><label for="size-1">Petite<small>≈20–45</small></label>
+          <input type="radio" name="size" id="size-2" value="2"><label for="size-2">Moyenne<small>≈50–90</small></label>
+          <input type="radio" name="size" id="size-3" value="3"><label for="size-3">Grande<small>≈90–136</small></label>
+          <input type="radio" name="size" id="size-4" value="4"><label for="size-4">Géante<small>≈150–272</small></label>
+        </div>
+        <p class="hint" id="size-hint" hidden></p>
+        <div class="switch-row">
+          <label for="double-pack">Double pack<span class="mono">272 pièces</span></label>
+          <input type="checkbox" role="switch" id="double-pack" class="switch" aria-describedby="double-hint">
+        </div>
+        <p class="hint" id="double-hint">Deux boîtes réunies, pour la taille Géante et le thème libre. Les tailles Petite à Grande tiennent toujours dans une seule boîte.</p>
+      </section>
+
+      <section class="sec" aria-labelledby="h-themes">
+        <h2 class="sec-title" id="h-themes">Thèmes</h2>
+        <div class="theme-grid" id="theme-grid"></div>
+      </section>
+
+      <section class="sec" aria-labelledby="h-colors">
+        <h2 class="sec-title" id="h-colors">Couleurs</h2>
+        <div class="seg" role="radiogroup" aria-labelledby="h-colors">
+          <input type="radio" name="colors" id="color-rainbow" value="rainbow"><label for="color-rainbow"><span class="swatch" style="background:linear-gradient(90deg,#E8403A 0 17%,#FF8A1F 0 33%,#FFC61A 0 50%,#35C35A 0 67%,#2FA4F0 0 83%,#9A5CEB 0)"></span>Arc-en-ciel</label>
+          <input type="radio" name="colors" id="color-type" value="type"><label for="color-type"><span class="swatch" style="background:linear-gradient(90deg,#35C35A 0 25%,#3C8CF0 0 50%,#FFC61A 0 75%,#F0449A 0)"></span>Par type</label>
+          <input type="radio" name="colors" id="color-step" value="step"><label for="color-step"><span class="swatch" style="background:linear-gradient(90deg,#2B9BD8,#6F5BE0,#D448B5,#F26A3D)"></span>Par étape</label>
+        </div>
+      </section>
+    </aside>
+
+    <!-- Vue 3D -->
+    <section class="col-view" aria-label="Vue 3D de la construction">
+      <div class="stage" id="stage">
+        <div class="viewer-host" id="viewer-host"></div>
+        <p class="stage-note" id="stage-note" role="status" hidden></p>
+        <div class="toolbar" role="toolbar" aria-label="Outils de la vue">
+          <button type="button" class="tool" id="tool-rotate" aria-pressed="false" title="Rotation automatique" aria-label="Rotation automatique">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12a8 8 0 1 1-2.34-5.66"/><path d="M20 4v5h-5"/></svg>
+          </button>
+          <button type="button" class="tool" id="tool-recenter" title="Recentrer la vue" aria-label="Recentrer la vue">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/><circle cx="12" cy="12" r="2.5"/></svg>
+          </button>
+          <span class="tool-sep" aria-hidden="true"></span>
+          <label class="tool-range" for="tool-explode" title="Écarter les pièces pour mieux les voir">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+            <span class="tr-label">Éclater</span>
+            <input type="range" id="tool-explode" min="0" max="100" step="1" value="0" aria-label="Vue éclatée">
+          </label>
+          <button type="button" class="tool" id="tool-shot" title="Capture PNG" aria-label="Capture PNG" hidden>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>
+          </button>
+        </div>
+        <div class="stage-step" id="stage-step" aria-hidden="true" hidden>
+          <span class="ss-title">À ajouter</span>
+          <span class="ss-parts" id="stage-step-parts"></span>
+        </div>
+        <div class="stepbar" id="stepbar" role="group" aria-label="Étapes de montage">
+          <button type="button" class="tool" id="sb-prev" aria-label="Étape précédente">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg>
+          </button>
+          <span class="sb-label" id="sb-label">Construction complète</span>
+          <button type="button" class="tool" id="sb-next" aria-label="Étape suivante">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg>
+          </button>
+          <button type="button" class="tool" id="sb-play" aria-pressed="false" aria-label="Aperçu animé des étapes" title="Aperçu animé des étapes">
+            <svg class="i-play" viewBox="0 0 24 24" fill="currentColor"><path d="M7 4.5v15l12.5-7.5z"/></svg>
+            <svg class="i-pause" viewBox="0 0 24 24" fill="currentColor" hidden><rect x="6" y="4.5" width="4.2" height="15" rx="1"/><rect x="13.8" y="4.5" width="4.2" height="15" rx="1"/></svg>
+          </button>
+        </div>
+        <div class="tip" id="tip" hidden></div>
+      </div>
+    </section>
+
+    <!-- Résultat -->
+    <aside class="col col-result" aria-label="Ta construction">
+      <section class="sec res-head" aria-labelledby="res-title">
+        <p class="res-eyebrow" id="res-eyebrow"></p>
+        <h2 class="res-title" id="res-title">Préparation…</h2>
+        <p class="res-summary" id="res-summary"></p>
+        <div class="res-stats">
+          <span class="count" id="res-count"></span>
+          <span class="badge" id="res-badge" hidden></span>
+          <button type="button" class="badge" id="res-solid" hidden></button>
+        </div>
+        <div class="variant-row">
+          <span class="lbl">Variante n°</span>
+          <output id="seed-value" class="mono" aria-live="polite">1</output>
+          <button id="new-seed" type="button" class="btn btn-small">Autre variante</button>
+        </div>
+        <div class="notice" id="res-downsized" hidden>
+          <p id="res-downsized-text"></p>
+          <button type="button" class="btn btn-small" id="to-double" hidden>Passer en double pack</button>
+        </div>
+        <div class="report" id="res-report" hidden></div>
+        <button type="button" class="btn btn-primary btn-big head-start" id="head-start">Commencer le montage</button>
+      </section>
+
+      <section class="sec" aria-labelledby="h-steps" id="sec-steps">
+        <h2 class="sec-title" id="h-steps">Montage</h2>
+        <div class="step-card">
+          <div class="step-head">
+            <span class="step-word" id="step-word"></span>
+            <span class="step-num" id="step-num" tabindex="-1">1</span>
+            <span class="step-of" id="step-of">étape</span>
+          </div>
+          <p class="step-label" id="step-label"></p>
+          <div class="step-box" id="step-box">
+            <h3 id="step-box-title">Sommaire</h3>
+            <div class="step-parts" id="step-parts"></div>
+          </div>
+        </div>
+        <p class="sr-only" id="step-live" aria-live="polite"></p>
+        <div class="step-nav">
+          <button type="button" class="btn btn-big step-back" id="step-prev" aria-label="Étape précédente" title="Étape précédente">‹</button>
+          <button type="button" class="btn btn-primary btn-big" id="step-next">Commencer le montage</button>
+        </div>
+        <div class="step-ctrl">
+          <input type="range" id="step-range" min="1" max="2" step="1" value="2" aria-label="Choisir l’étape (tout à droite : vue complète)">
+          <span class="end" aria-hidden="true">Tout</span>
+        </div>
+        <div class="step-actions">
+          <label class="check" id="ghost-row" hidden><input type="checkbox" id="step-ghost">Montrer la suite en transparence</label>
+          <button type="button" class="btn btn-small" id="step-play" aria-pressed="false">Aperçu animé</button>
+          <button type="button" class="btn btn-small" id="step-all" hidden>Tout voir</button>
+        </div>
+      </section>
+
+      <section class="sec" aria-labelledby="h-parts">
+        <div class="parts-head">
+          <h2 class="sec-title" id="h-parts">Pièces</h2>
+          <span class="hint">1 carré = 7,5 cm de côté</span>
+        </div>
+        <ul class="parts" id="parts"></ul>
+        <p class="parts-total" id="parts-total"></p>
+      </section>
+
+      <section class="sec" aria-labelledby="h-code">
+        <h2 class="sec-title" id="h-code">Code de la construction</h2>
+        <div class="code-row">
+          <code class="code mono" id="build-code"></code>
+          <button type="button" class="btn btn-small" id="copy-code">Copier</button>
+        </div>
+        <form class="code-form" id="code-form" autocomplete="off">
+          <label class="sr-only" for="code-input">Code à charger</label>
+          <input id="code-input" type="text" maxlength="40" spellcheck="false" autocapitalize="off" placeholder="Colle un code, ex. chateau-3-1-5">
+          <button type="submit" class="btn btn-small">Charger</button>
+        </form>
+        <p class="hint">Le même code redonne la même construction. Le code d’un thème libre ne marche que sur cet appareil.</p>
+        <div class="dl-row" id="dl-row" hidden>
+          <button type="button" class="btn btn-small" id="dl-md">Fiche de montage (.md)</button>
+          <button type="button" class="btn btn-small" id="dl-png">Capture PNG</button>
+        </div>
+        <p class="mini-status" id="res-status" role="status" aria-live="polite"></p>
+      </section>
+
+      <section class="sec">
+        <details class="solid" id="solid">
+          <summary><span class="sec-title">Solidité</span><span class="solid-sum" id="solid-sum"></span></summary>
+          <ul class="checks" id="checks"></ul>
+        </details>
+      </section>
+    </aside>
+  </main>
+</div>
+
+<!-- Three.js en différé : l'interface (thèmes, pièces, étapes, aperçu 2D) démarre sans l'attendre,
+     puis la vue 3D prend le relais (js/app.js). L'ordre three → OrbitControls → RoomEnvironment est garanti par defer. -->
+<script defer src="https://cdn.jsdelivr.net/npm/three@0.147.0/build/three.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/controls/OrbitControls.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/environments/RoomEnvironment.js"></script>
+<script src="js/pieces.js"></script>
+<script src="js/builder.js"></script>
+<script src="themes/a-habitat.js"></script>
+<script src="themes/b-ville.js"></script>
+<script src="themes/c-aventure.js"></script>
+<script src="themes/z-idees.js"></script>
+<script src="js/viewer.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
